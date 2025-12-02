@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Simulasi Hukum Faraday — Versi Lengkap</title>
+<style>
+:root{
+  --bg:#0f1724; --card:#0b1220; --accent:#4f46e5; --glass: rgba(255,255,255,0.04);
+  --muted:#94a3b8; --white: #e6eef8;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;color:var(--white);background:linear-gradient(180deg,#071023 0%, #071526 60%);height:100vh;display:flex}
+.left{width:360px;padding:20px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);backdrop-filter: blur(6px);box-shadow: 4px 0 30px rgba(2,6,23,0.6);overflow:auto}
+.left h2{margin:6px 0 18px;font-size:20px}
+.group{background:var(--card);border-radius:12px;padding:12px;margin-bottom:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
+.row{display:flex;align-items:center;justify-content:space-between}
+.label{font-size:13px;color:var(--muted)}
+.value{font-weight:700}
+.control{margin-top:8px}
+.range{width:100%}
+.check{display:flex;align-items:center;gap:8px;margin-top:8px}
+.btn{display:inline-block;padding:10px 12px;border-radius:9px;border:none;cursor:pointer;font-weight:600}
+.primary{background:linear-gradient(90deg,var(--accent),#06b6d4);color:white}
+.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+.world{flex:1;padding:20px;display:flex;flex-direction:column;gap:14px}
+.canvasCard{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border-radius:12px;padding:12px;display:flex;gap:12px}
+#simCanvas{background:#07162a;border-radius:8px}
+.rightRow{display:flex;flex-direction:column;gap:12px;width:420px}
+.smallCard{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:10px;border-radius:10px}
+.formula{font-family: 'Courier New', monospace;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;color:var(--muted)}
+.toggle{display:inline-flex;align-items:center;gap:8px}
+.modeSelect{width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--white)}
+.graphCanvas{width:100%;height:200px;border-radius:8px}
+.footerNote{font-size:12px;color:var(--muted);margin-top:8px}
+.badge{display:inline-block;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.03);font-size:12px}
+</style>
+</head>
+<body>
+  <div class="left">
+    <h2>Parameter Kontrol — Hukum Faraday</h2>
+
+    <div class="group">
+      <div class="row"><div class="label">Mode Gerak</div>
+      <select id="mode" class="modeSelect">
+        <option value="oscillation">Bolak-balik (Oscillation)</option>
+        <option value="linear">Masuk-Keluar Linear</option>
+        <option value="circular">Gerak Melingkar</option>
+        <option value="free">Gerak Bebas (frekuensi)</option>
+      </select></div>
+      <div class="footerNote">Semua mode akan mempengaruhi fluks melalui variasi posisi / orientasi kumparan dan magnet.</div>
+    </div>
+
+    <div class="group">
+      <div class="row"><div class="label">Jumlah Lilitan N</div><div class="value" id="NVal">200</div></div>
+      <div class="control">
+        <input id="N" class="range" type="range" min="1" max="500" value="200">
+        <div class="check"><label><input type="checkbox" id="oscN"> Osilasi</label>
+        <label style="margin-left:auto">Frekuensi <input id="fN" type="number" value="1" min="0" step="0.1" style="width:70px;margin-left:8px"></label></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="row"><div class="label">Radius Kumparan (px visual) — A</div><div class="value" id="AVal">60</div></div>
+      <div class="control">
+        <input id="A" class="range" type="range" min="20" max="150" value="60">
+        <div class="check"><label><input type="checkbox" id="oscA"> Osilasi</label>
+        <label style="margin-left:auto">Frekuensi <input id="fA" type="number" value="1" min="0" step="0.1" style="width:70px;margin-left:8px"></label></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="row"><div class="label">Kekuatan Medan B (T)</div><div class="value" id="BVal">1.0</div></div>
+      <div class="control">
+        <input id="B" class="range" type="range" min="-5" max="5" step="0.05" value="1">
+        <div class="check"><label><input type="checkbox" id="oscB"> Osilasi</label>
+        <label style="margin-left:auto">Frekuensi <input id="fB" type="number" value="1" min="0" step="0.1" style="width:70px;margin-left:8px"></label></div>
+      </div>
+      <div class="footerNote">Jika B negatif, arah ditunjukkan sebagai &times; (masuk), jika positif • (keluar).</div>
+    </div>
+
+    <div class="group">
+      <div class="row"><div class="label">Sudut θ (derajat)</div><div class="value" id="thetaVal">0°</div></div>
+      <div class="control">
+        <input id="theta" class="range" type="range" min="0" max="360" value="0">
+        <div class="check"><label><input type="checkbox" id="oscTheta"> Osilasi (rotasi otomatis)</label>
+        <label style="margin-left:auto">Frekuensi <input id="fTheta" type="number" value="0.8" min="0" step="0.1" style="width:70px;margin-left:8px"></label></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="row"><div class="label">Pengaturan Gerak</div><div></div></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button id="start" class="btn primary">Mulai</button>
+        <button id="stop" class="btn ghost">Hentikan</button>
+      </div>
+      <div class="footerNote">Rumus real-time ditampilkan di panel kanan.</div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <div class="badge">UI: Modern</div>
+      <div class="badge">Visual: Realistis</div>
+    </div>
+  </div>
+
+  <div class="world">
+    <div style="display:flex;gap:12px">
+      <div style="flex:1" class="canvasCard">
+        <canvas id="simCanvas" width="900" height="500"></canvas>
+      </div>
+      <div class="rightRow">
+        <div class="smallCard">
+          <div style="display:flex;justify-content:space-between;align-items:center"><strong>Nilai Real-time</strong><span id="timeVal">t=0.00 s</span></div>
+          <div style="margin-top:8px">Φ = <span id="phiVal">0.000</span> Wb</div>
+          <div>ε = <span id="emfVal">0.000</span> V</div>
+          <div style="margin-top:8px" class="formula">Φ = B · A · cos θ</div>
+          <div style="margin-top:6px" class="formula">ε = − N · dΦ/dt</div>
+        </div>
+
+        <div class="smallCard">
+          <strong>Grafik Real-time</strong>
+          <canvas id="graph" class="graphCanvas" width="420" height="200"></canvas>
+        </div>
+
+        <div class="smallCard">
+          <strong>Keterangan Visual</strong>
+          <div style="margin-top:8px;color:var(--muted);font-size:13px">• Dot (•) = medan keluar (B&gt;0). • Cross (×) = medan masuk (B&lt;0).<br>• Rotasi kumparan sesuai θ. • Jumlah garis kumparan skala linear dengan N.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// --- Setup
+const simCanvas = document.getElementById('simCanvas');
+const sctx = simCanvas.getContext('2d');
+const graph = document.getElementById('graph');
+const gctx = graph.getContext('2d');
+
+// Controls
+const N = document.getElementById('N'), NVal = document.getElementById('NVal'), oscN = document.getElementById('oscN'), fN = document.getElementById('fN');
+const A = document.getElementById('A'), AVal = document.getElementById('AVal'), oscA = document.getElementById('oscA'), fA = document.getElementById('fA');
+const B = document.getElementById('B'), BVal = document.getElementById('BVal'), oscB = document.getElementById('oscB'), fB = document.getElementById('fB');
+const theta = document.getElementById('theta'), thetaVal = document.getElementById('thetaVal'), oscTheta = document.getElementById('oscTheta'), fTheta = document.getElementById('fTheta');
+const mode = document.getElementById('mode');
+const startBtn = document.getElementById('start'), stopBtn = document.getElementById('stop');
+const timeVal = document.getElementById('timeVal'), phiVal = document.getElementById('phiVal'), emfVal = document.getElementById('emfVal');
+
+let running = false;
+let t = 0, lastPhi = 0;
+let graphData = [];
+
+// helpers
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+
+// physics units: we'll treat A input as visual radius in px; convert to meters for physics (scale)
+const pxToMeter = 0.005; // arbitrary scale so area non-zero
+
+function computeFlux(Bval, radius_px, theta_deg){
+  const r_m = radius_px * pxToMeter;
+  const area = Math.PI * r_m * r_m; // m^2
+  const phi = Bval * area * Math.cos(theta_deg * Math.PI/180);
+  return {phi, area};
+}
+
+function drawFieldLines(cx,cy,scale,Bval, time){
+  // draw concentric animated field rings around magnet (left side)
+  const rings = 5;
+  for(let i=0;i<rings;i++){
+    let rad = 60 + i*20 + (Math.sin(time*2 + i)*6);
+    sctx.beginPath();
+    sctx.strokeStyle = `rgba(99,102,241,${0.12 + i*0.02})`;
+    sctx.lineWidth = 1;
+    sctx.arc(cx,cy,rad,0,Math.PI*2);
+    sctx.stroke();
+  }
+  // draw direction symbol dot or cross
+  sctx.save(); sctx.translate(cx,cy);
+  sctx.fillStyle = Bval>=0? '#34d399' : '#fb7185';
+  if (Bval>=0){ // dot
+    sctx.beginPath(); sctx.arc(0,0,6,0,Math.PI*2); sctx.fill();
+  } else { // cross
+    sctx.beginPath(); sctx.moveTo(-6,-6); sctx.lineTo(6,6); sctx.moveTo(-6,6); sctx.lineTo(6,-6); sctx.lineWidth=2; sctx.strokeStyle = '#fb7185'; sctx.stroke();
+  }
+  sctx.restore();
+}
+
+function drawMagnet(cx,cy){
+  // simple bar magnet with N and S
+  sctx.save();
+  sctx.translate(cx,cy);
+  sctx.fillStyle = '#ef4444'; sctx.fillRect(-28,-48,56,96);
+  sctx.fillStyle = '#111827'; sctx.font = '18px monospace'; sctx.fillText('N', -12, -12);
+  sctx.fillText('S', -12, 36);
+  sctx.restore();
+}
+
+function drawCoil(cx,cy,Ncount,radius_px,theta_deg){
+  sctx.save();
+  sctx.translate(cx,cy);
+  sctx.rotate(theta_deg * Math.PI/180);
+  // number of visible lines proportional to N (linear)
+  const visLines = Math.min(60, Math.max(4, Math.round(Ncount/Math.ceil( Ncount/60 ))));
+  const step = 2.6;
+  sctx.strokeStyle = '#60a5fa'; sctx.lineWidth = 1.6;
+  for(let i=0;i<visLines;i++){
+    sctx.beginPath(); sctx.ellipse(0,0, radius_px + i*step, (radius_px + i*step)*0.9, 0, 0, Math.PI*2);
+    sctx.stroke();
+  }
+  // draw axis small line
+  sctx.strokeStyle='rgba(255,255,255,0.06)'; sctx.beginPath(); sctx.moveTo(0,-radius_px*1.6); sctx.lineTo(0,radius_px*1.6); sctx.stroke();
+  sctx.restore();
+}
+
+function clear(){ sctx.clearRect(0,0,simCanvas.width,simCanvas.height); }
+
+function renderFrame(dt){
+  // read controls
+  let Nval = parseFloat(N.value);
+  let Aval = parseFloat(A.value);
+  let Bval = parseFloat(B.value);
+  let thetaval = parseFloat(theta.value);
+
+  // apply oscillations
+  if (oscN.checked) Nval += Math.sin(2*Math.PI*parseFloat(fN.value)*t) * (Math.max(1, Nval*0.05));
+  if (oscA.checked) Aval += Math.sin(2*Math.PI*parseFloat(fA.value)*t) * (Math.max(1, Aval*0.06));
+  if (oscB.checked) Bval += Math.sin(2*Math.PI*parseFloat(fB.value)*t) * 0.8;
+  if (oscTheta.checked) thetaval = (thetaval + 360 * parseFloat(fTheta.value) * dt) % 360;
+
+  // apply motion modes
+  const m = mode.value;
+  // we'll simulate magnet at left, coil at right; modes change relative position/orientation
+  let magX = 220, magY = simCanvas.height/2;
+  let coilX = 650, coilY = simCanvas.height/2;
+  if (m === 'oscillation'){
+    // magnet oscillates left-right
+    const amp = 40; magX += Math.sin(2*Math.PI*0.6*t)*amp;
+  } else if (m === 'linear'){
+    // magnet moves in-out along x between -80..+80
+    const amp = 120; magX += Math.sin(2*Math.PI*0.8*t)*amp;
+  } else if (m === 'circular'){
+    // magnet moves in circular path around center
+    const r = 60; magX += Math.cos(2*Math.PI*0.5*t)*r; magY += Math.sin(2*Math.PI*0.5*t)*r;
+  } else if (m === 'free'){
+    // rotate coil by frequency fTheta and let B oscillate by fB
+    if (!oscTheta.checked) thetaval = (thetaval + 360 * parseFloat(fTheta.value) * dt) % 360;
+  }
+
+  // physics compute flux — assume coil area fixed to Aval
+  const phys = computeFlux(Bval, Aval, thetaval);
+  const phi = phys.phi;
+  const area = phys.area;
+
+  const emf = - (parseFloat(N.value)) * ( (phi - lastPhi) / dt );
+
+  lastPhi = phi;
+
+  // record graph
+  graphData.push({phi, emf}); if (graphData.length > graph.width) graphData.shift();
+
+  // draw visuals
+  clear();
+  // background subtle grid
+  sctx.fillStyle = 'linear-gradient(180deg, rgba(255,255,255,0.01), transparent)';
+
+  // draw magnet and field
+  drawFieldLines(magX, magY, 1, Bval, t);
+  drawMagnet(magX, magY);
+
+  // draw coil
+  drawCoil(coilX, coilY, Nval, Aval, thetaval);
+
+  // overlay labels
+  sctx.fillStyle = 'rgba(255,255,255,0.85)'; sctx.font='13px Inter';
+  sctx.fillText(`N = ${Math.round(Nval)}`, coilX-30, coilY - Aval - 20);
+  sctx.fillText(`A (px) = ${Math.round(Aval)}`, coilX-30, coilY - Aval - 6);
+  sctx.fillText(`θ = ${Math.round(thetaval)}°`, coilX-30, coilY + Aval + 18);
+
+  // draw B symbol near magnet
+  sctx.font='18px monospace';
+  if (Bval >= 0){ sctx.fillStyle = '#34d399'; sctx.fillText('•', magX-6, magY+6);} else { sctx.fillStyle='#fb7185'; sctx.fillText('×', magX-8, magY+6);} 
+
+  // update numeric UI
+  timeVal.textContent = `t = ${t.toFixed(2)} s`;
+  phiVal.textContent = phi.toExponential(3);
+  emfVal.textContent = emf.toExponential(3);
+
+  // plot graph
+  plotGraph();
+}
+
+function plotGraph(){
+  // clear
+  gctx.clearRect(0,0,graph.width,graph.height);
+  // axes
+  gctx.strokeStyle = 'rgba(255,255,255,0.06)'; gctx.beginPath(); gctx.moveTo(0,graph.height/2); gctx.lineTo(graph.width,graph.height/2); gctx.stroke();
+
+  // phi (blue)
+  gctx.beginPath(); gctx.strokeStyle = '#60a5fa';
+  for(let i=0;i<graphData.length;i++){
+    const x = i; const y = graph.height/2 - graphData[i].phi*80; // scale
+    if (i===0) gctx.moveTo(x,y); else gctx.lineTo(x,y);
+  }
+  gctx.stroke();
+  // emf (red)
+  gctx.beginPath(); gctx.strokeStyle = '#fb7185';
+  for(let i=0;i<graphData.length;i++){
+    const x = i; const y = graph.height/2 - graphData[i].emf*80;
+    if (i===0) gctx.moveTo(x,y); else gctx.lineTo(x,y);
+  }
+  gctx.stroke();
+}
+
+// animation loop
+let last = null;
+function loop(ts){
+  if (!running) return; if (!last) last = ts;
+  const dt = Math.max(1, ts - last) / 1000; last = ts;
+  t += dt;
+  renderFrame(dt);
+  requestAnimationFrame(loop);
+}
+
+// wire controls
+[N,A,B,theta].forEach(el => el.addEventListener('input', ()=>{NVal.textContent = N.value; AVal.textContent = A.value; BVal.textContent = Number(B.value).toFixed(2); thetaVal.textContent = theta.value + '°';}));
+
+startBtn.addEventListener('click', ()=>{ if (!running){ running = true; last = null; requestAnimationFrame(loop);} });
+stopBtn.addEventListener('click', ()=>{ running = false; });
+
+// initialize display
+NVal.textContent = N.value; AVal.textContent = A.value; BVal.textContent = Number(B.value).toFixed(2); thetaVal.textContent = theta.value + '°';
+
+</script>
+</body>
+</html>
